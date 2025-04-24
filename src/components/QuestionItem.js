@@ -1,32 +1,37 @@
-
 import React from "react";
 
-
-function QuestionItem({ question,onDelete }) {
-  if (!question || !Array.isArray(question.answers)) {
-    return null; // end program
-  }
-
+function QuestionItem({ question, deleteQuestion, updateQuestion }) {
   const { id, prompt, answers, correctIndex } = question;
 
   const options = answers.map((answer, index) => (
-    <option key={index} value={index}>
+    <option key={index} value={index.toString()}>
       {answer}
     </option>
   ));
-  function handleDelete() {
-    fetch(`http://localhost:4000/questions/${id}`, {
-      method: "DELETE",
+
+  function handleChange(event) {
+    const updatedCorrectIndex = parseInt(event.target.value, 10);
+
+    fetch("http://localhost:4000/questions/" + id, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ correctIndex: updatedCorrectIndex }),
     })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to delete question");
-        return response.json();
-      })
-      .then(() => {
-        console.log("Deleted!");
-        if (onDelete) onDelete(id); // notify parent
-      })
-      .catch((error) => console.error("Delete error:", error));
+      .then((r) => r.json())
+      .then((updatedQuestion) => {
+        console.log("Updated question from server:", updatedQuestion);
+        updateQuestion(updatedQuestion);
+      });
+  }
+
+  function handleDelete() {
+    fetch("http://localhost:4000/questions/" + id, {
+      method: "DELETE",
+    }).then(() => {
+      deleteQuestion(id);
+    });
   }
 
   return (
@@ -35,12 +40,13 @@ function QuestionItem({ question,onDelete }) {
       <h5>Prompt: {prompt}</h5>
       <label>
         Correct Answer:
-        <select defaultValue={correctIndex}>{options}</select>
+        <select value={correctIndex.toString()} onChange={handleChange}>
+          {options}
+        </select>
       </label>
       <button onClick={handleDelete}>Delete Question</button>
     </li>
   );
 }
-
 
 export default QuestionItem;
